@@ -1,23 +1,19 @@
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-});
-
 export async function generateQuestion() {
-  const prompt = `Generate a critical thinking question with 4 multiple choice options. Format as JSON:
-  {
-    "question": "question text",
-    "options": ["option1", "option2", "option3", "option4"],
-    "correctAnswer": "correct option text",
-    "explanation": "explanation of the correct answer"
-  }`;
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
-    messages: [{ role: "user", content: prompt }],
+  console.log("Calling generate question API...");
+  const response = await fetch("/api/generate-question", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 
-  const content = response.choices[0].message.content;
-  return content ? JSON.parse(content) : null;
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("Failed to generate question:", error);
+    throw new Error(`Failed to generate question: ${error}`);
+  }
+
+  const data = await response.json();
+  console.log("Question generated:", data);
+  return data;
 }

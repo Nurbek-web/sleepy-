@@ -32,15 +32,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(
       auth,
       async (firebaseUser: FirebaseUser | null) => {
+        console.log("Auth state changed:", firebaseUser?.email);
         if (firebaseUser) {
+          // Set the auth token cookie
+          const token = await firebaseUser.getIdToken();
+          document.cookie = `auth-token=${token}; path=/`;
+
           const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          console.log(
+            "User doc exists:",
+            userDoc.exists(),
+            "User data:",
+            userDoc.data()
+          );
           if (userDoc.exists()) {
-            setUser({ id: firebaseUser.uid, ...userDoc.data() } as User);
+            const userData = {
+              id: firebaseUser.uid,
+              ...userDoc.data(),
+            } as User;
+            console.log("Setting user state:", userData);
+            setUser(userData);
+          } else {
+            console.log("User document doesn't exist in Firestore");
+            setUser(null);
           }
         } else {
+          // Clear the auth token cookie
+          document.cookie =
+            "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+          console.log("No Firebase user, setting user state to null");
           setUser(null);
         }
         setLoading(false);
@@ -52,10 +76,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      console.log("Attempting sign in...");
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log("Sign in successful:", result.user.uid);
     } catch (error) {
       console.error("Sign in error:", error);
-      throw error; // Re-throw to handle in the UI
+      throw error;
     }
   };
 

@@ -13,12 +13,13 @@ export interface SleepEntry {
   id: string;
   userId: string;
   date: Date;
-  bedTime: Date;
-  wakeTime: Date;
-  sleepQuality: number; // 1-5
-  screenTime: number; // hours
+  bedTime: string;
+  wakeTime: string;
+  sleepQuality: number; // 1-5 scale
+  sleepDuration: number; // hours
+  screenTime: number; // hours before bed
   caffeineIntake: number; // mg
-  stressLevel: number; // 1-5
+  stressLevel: number; // 1-5 scale
   createdAt: Date;
 }
 

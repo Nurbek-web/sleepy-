@@ -17,7 +17,6 @@ export default function SleepEntryPage() {
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split("T")[0],
     bedTime: "22:00",
     wakeTime: "07:00",
     sleepQuality: 3,
@@ -32,20 +31,33 @@ export default function SleepEntryPage() {
     setLoading(true);
 
     try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of today
+
       // Validate times
-      const bedDateTime = new Date(`${formData.date}T${formData.bedTime}`);
-      const wakeDateTime = new Date(`${formData.date}T${formData.wakeTime}`);
+      const bedDateTime = new Date(today);
+      const [bedHours, bedMinutes] = formData.bedTime.split(":").map(Number);
+      bedDateTime.setHours(bedHours, bedMinutes, 0, 0);
+
+      const wakeDateTime = new Date(today);
+      const [wakeHours, wakeMinutes] = formData.wakeTime.split(":").map(Number);
+      wakeDateTime.setHours(wakeHours, wakeMinutes, 0, 0);
 
       // If wake time is before bed time, assume it's the next day
       if (wakeDateTime < bedDateTime) {
         wakeDateTime.setDate(wakeDateTime.getDate() + 1);
       }
 
+      // Calculate sleep duration in hours
+      const sleepDuration =
+        (wakeDateTime.getTime() - bedDateTime.getTime()) / (1000 * 60 * 60);
+
       const sleepEntry: Omit<SleepEntry, "id"> = {
         userId: user!.id,
-        date: new Date(formData.date),
+        date: today,
         bedTime: bedDateTime,
         wakeTime: wakeDateTime,
+        sleepDuration: Number(sleepDuration.toFixed(1)), // Store sleep duration in hours
         sleepQuality: Number(formData.sleepQuality),
         screenTime: Number(formData.screenTime),
         caffeineIntake: Number(formData.caffeineIntake),
@@ -66,7 +78,7 @@ export default function SleepEntryPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>New Sleep Entry</CardTitle>
+          <CardTitle>Today's Sleep Entry</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -75,19 +87,6 @@ export default function SleepEntryPage() {
             )}
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Date</label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, date: e.target.value })
-                  }
-                  max={new Date().toISOString().split("T")[0]}
-                  required
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">

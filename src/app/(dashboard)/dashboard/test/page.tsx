@@ -37,6 +37,13 @@ export default function TestPage() {
   );
   const [alertnessRating, setAlertnessRating] = useState(5);
 
+  // Add useEffect to load questions
+  useEffect(() => {
+    if (user) {
+      loadQuestions();
+    }
+  }, [user, difficulty]);
+
   // Timer effect
   useEffect(() => {
     if (loading || isReviewMode || showExplanation) return;
@@ -115,6 +122,11 @@ export default function TestPage() {
         alertnessRating,
         questions: questions.map((q) => q.question),
         answers: selectedAnswers,
+        difficulty,
+        baseScore: score,
+        adjustedScore:
+          score *
+          (difficulty === "easy" ? 1 : difficulty === "medium" ? 1.5 : 2),
       };
 
       await addDoc(collection(db, "testResults"), testResult);
@@ -276,11 +288,11 @@ export default function TestPage() {
               <div className="mt-4 p-4 bg-gray-50 rounded-md">
                 <h3 className="font-semibold mb-2">Explanation</h3>
                 <p className="text-gray-700">{currentQuestion.explanation}</p>
-                {currentQuestionIndex < questions.length - 1 && (
-                  <Button className="mt-4" onClick={handleNextQuestion}>
-                    Next Question
-                  </Button>
-                )}
+                <Button className="mt-4" onClick={handleNextQuestion}>
+                  {currentQuestionIndex < questions.length - 1
+                    ? "Next Question"
+                    : "Finish Test"}
+                </Button>
               </div>
             )}
           </div>

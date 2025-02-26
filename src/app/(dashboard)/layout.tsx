@@ -34,7 +34,7 @@ export default function DashboardLayout({
                 href="/dashboard"
                 className="text-xl font-bold text-gray-900"
               >
-                Sleep Study App
+                Sleepy
               </Link>
             </div>
             <div className="flex items-center space-x-4">
