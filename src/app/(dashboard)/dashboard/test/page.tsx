@@ -6,14 +6,16 @@ import { useState, useEffect, useCallback } from "react";
 import {
   collection,
   query,
-  where,
   limit,
   getDocs,
   addDoc,
+  where,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { startOfDay, endOfDay } from "date-fns";
 
 interface Question {
   id?: string;
@@ -21,7 +23,6 @@ interface Question {
   options: string[];
   correctAnswer: string;
   explanation: string;
-  difficulty: "easy" | "medium" | "hard";
 }
 
 const QUESTION_TIME_LIMIT = 120; // 2 minutes per question
@@ -30,12 +31,12 @@ export default function TestPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes in seconds
-  const [difficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [answers, setAnswers] = useState<string[]>([]);
   const [startTime] = useState<Date>(new Date());
   const [alertnessRating, setAlertnessRating] = useState(5);
@@ -59,31 +60,79 @@ export default function TestPage() {
   }, [currentQuestionIndex, answers, handleNextQuestion]);
 
   const loadQuestions = useCallback(async () => {
+    console.log("Starting loadQuestions function");
+    setLoading(true);
+    setError(null);
     try {
-      const questionsQuery = query(
-        collection(db, "questions"),
-        where("difficulty", "==", difficulty),
-        limit(10)
-      );
+      // Try to get existing questions first
+      const questionsQuery = query(collection(db, "questions"), limit(10));
+
+      console.log("Executing Firestore query...");
       const snapshot = await getDocs(questionsQuery);
-      const loadedQuestions = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Question[];
-      setQuestions(loadedQuestions);
-      setLoading(false);
-    } catch {
-      console.error("Error loading questions");
+      console.log("Query complete. Empty?", snapshot.empty);
+
+      if (snapshot.empty) {
+        console.log("No questions found, generating new ones...");
+        // Generate new questions
+        const generatedQuestions: Question[] = [];
+        for (let i = 0; i < 10; i++) {
+          try {
+            const response = await fetch("/api/generate-question", {
+              method: "POST",
+            });
+            if (!response.ok) {
+              throw new Error("Failed to generate question");
+            }
+            const questionData = await response.json();
+            // Store in Firestore
+            const docRef = await addDoc(
+              collection(db, "questions"),
+              questionData
+            );
+            generatedQuestions.push({ ...questionData, id: docRef.id });
+          } catch (error) {
+            console.error("Error generating question:", error);
+          }
+        }
+
+        if (generatedQuestions.length === 0) {
+          throw new Error("Failed to generate questions");
+        }
+
+        console.log(`Generated ${generatedQuestions.length} new questions`);
+        setQuestions(generatedQuestions);
+      } else {
+        const loadedQuestions = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Question[];
+        console.log(`Loaded ${loadedQuestions.length} questions`);
+        setQuestions(loadedQuestions);
+      }
+
+      setCurrentQuestionIndex(0);
+      setAnswers([]);
+      setIsReviewMode(false);
+      setShowExplanation(false);
+      setTimeRemaining(QUESTION_TIME_LIMIT);
+    } catch (error) {
+      console.error("Error loading questions:", error);
+      if (error instanceof Error) {
+        setError(error.message);
+      }
+    } finally {
+      console.log("Setting loading to false");
       setLoading(false);
     }
-  }, [difficulty]);
+  }, []);
 
-  // Add useEffect to load questions
+  // Load questions when component mounts
   useEffect(() => {
     if (user) {
+      console.log("User available, loading questions");
       loadQuestions();
     }
-  }, [user, difficulty, loadQuestions]);
+  }, [user, loadQuestions]);
 
   // Timer effect
   useEffect(() => {
@@ -128,23 +177,51 @@ export default function TestPage() {
   };
 
   const handleSubmitTest = async () => {
+    if (!user?.id) return;
+
     try {
       const finalScore = calculateScore(answers);
       const testResult = {
-        userId: user?.id,
+        userId: user.id,
         startTime,
         endTime: new Date(),
         score: finalScore,
-        difficulty,
         answers,
         questions: questions.map((q) => q.id),
         alertnessRating,
       };
 
-      await addDoc(collection(db, "testResults"), testResult);
+      // Get today's boundaries
+      const today = new Date();
+      const startOfToday = startOfDay(today);
+      const endOfToday = endOfDay(today);
+
+      // Query only by userId
+      const testResultsQuery = query(
+        collection(db, "testResults"),
+        where("userId", "==", user.id)
+      );
+
+      const snapshot = await getDocs(testResultsQuery);
+
+      // Find today's test result if it exists
+      const todayResult = snapshot.docs.find((doc) => {
+        const data = doc.data();
+        const startTime = data.startTime?.toDate();
+        return startTime >= startOfToday && startTime <= endOfToday;
+      });
+
+      if (todayResult) {
+        // Update existing test result
+        await updateDoc(todayResult.ref, testResult);
+      } else {
+        // Create new test result
+        await addDoc(collection(db, "testResults"), testResult);
+      }
+
       router.push("/dashboard/test/history");
-    } catch {
-      console.error("Error submitting test");
+    } catch (error) {
+      console.error("Error submitting test:", error);
     }
   };
 
@@ -242,6 +319,36 @@ export default function TestPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">
+            Error Loading Questions
+          </h2>
+          <p className="text-gray-500 mb-4">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentQuestion = questions[currentQuestionIndex];
+  if (!currentQuestion) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Error Loading Question</h2>
+          <p className="text-gray-500">
+            There was an error loading the question. Please try again.
+          </p>
+          <Button onClick={loadQuestions} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (isReviewMode) {
     return (
       <div className="max-w-3xl mx-auto py-8">
@@ -249,8 +356,6 @@ export default function TestPage() {
       </div>
     );
   }
-
-  const currentQuestion = questions[currentQuestionIndex];
 
   return (
     <div className="max-w-2xl mx-auto">
