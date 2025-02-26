@@ -22,7 +22,7 @@ export default function RegisterPage() {
     try {
       await signUp(email, password, role, name);
       router.push("/dashboard");
-    } catch (err) {
+    } catch {
       setError("Failed to create account. Please try again.");
     }
   };

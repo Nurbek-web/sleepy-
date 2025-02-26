@@ -21,7 +21,7 @@ export function AlertBanner({ missingSleep, missingTest }: AlertBannerProps) {
         <div className="space-y-2">
           {missingSleep && (
             <div className="flex items-center justify-between">
-              <span>You haven't added your sleep entry for today.</span>
+              <span>You haven&apos;t added your sleep entry for today.</span>
               <Button
                 variant="outline"
                 size="sm"
@@ -33,7 +33,9 @@ export function AlertBanner({ missingSleep, missingTest }: AlertBannerProps) {
           )}
           {missingTest && (
             <div className="flex items-center justify-between">
-              <span>You haven't taken your critical thinking test today.</span>
+              <span>
+                You haven&apos;t taken your critical thinking test today.
+              </span>
               <Button
                 variant="outline"
                 size="sm"

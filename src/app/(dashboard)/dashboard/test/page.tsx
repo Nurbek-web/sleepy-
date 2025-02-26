@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { addDoc, collection } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  query,
+  where,
+  limit,
+  getDocs,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { generateQuestion } from "@/lib/openai";
 import { TestResult } from "@/types";
@@ -27,14 +34,14 @@ export default function TestPage() {
   const [error, setError] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [testStartTime, setTestStartTime] = useState<Date>();
-  const [timeRemaining, setTimeRemaining] = useState(QUESTION_TIME_LIMIT);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">(
-    "medium"
-  );
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes in seconds
+  const [difficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [score, setScore] = useState(0);
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [startTime] = useState<Date>(new Date());
   const [alertnessRating, setAlertnessRating] = useState(5);
 
   // Add useEffect to load questions
@@ -61,35 +68,43 @@ export default function TestPage() {
     return () => clearInterval(timer);
   }, [loading, currentQuestionIndex, isReviewMode, showExplanation]);
 
-  const handleTimeUp = useCallback(() => {
-    const newAnswers = [...selectedAnswers];
-    newAnswers[currentQuestionIndex] = ""; // No answer selected
-    setSelectedAnswers(newAnswers);
-    handleNextQuestion();
-  }, [currentQuestionIndex, selectedAnswers]);
+  useEffect(() => {
+    if (timeRemaining === 0) {
+      handleTimeUp();
+    }
+  }, [timeRemaining, handleTimeUp]);
 
-  // Load questions with difficulty
+  const handleTimeUp = useCallback(() => {
+    const newAnswers = [...answers];
+    newAnswers[currentQuestionIndex] = ""; // No answer selected
+    setAnswers(newAnswers);
+    handleNextQuestion();
+  }, [currentQuestionIndex, answers]);
+
   const loadQuestions = async () => {
     try {
-      setLoading(true);
-      const questionPromises = Array(5)
-        .fill(null)
-        .map(() => generateQuestion(difficulty));
-      const newQuestions = await Promise.all(questionPromises);
-      setQuestions(newQuestions);
-      setTestStartTime(new Date());
-      setTimeRemaining(QUESTION_TIME_LIMIT);
+      const questionsQuery = query(
+        collection(db, "questions"),
+        where("difficulty", "==", difficulty),
+        limit(10)
+      );
+      const snapshot = await getDocs(questionsQuery);
+      const loadedQuestions = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Question[];
+      setQuestions(loadedQuestions);
       setLoading(false);
-    } catch (err) {
-      setError("Failed to load questions. Please try again.");
+    } catch {
+      console.error("Error loading questions");
       setLoading(false);
     }
   };
 
   const handleAnswerSelect = async (answer: string) => {
-    const newAnswers = [...selectedAnswers];
+    const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = answer;
-    setSelectedAnswers(newAnswers);
+    setAnswers(newAnswers);
     setShowExplanation(true);
   };
 
@@ -110,29 +125,22 @@ export default function TestPage() {
     }, 0);
   };
 
-  const submitTest = async () => {
+  const handleSubmitTest = async () => {
     try {
-      const score = calculateScore(selectedAnswers);
-      const testResult: Omit<TestResult, "id"> = {
-        userId: user!.id,
-        startTime: testStartTime!,
+      const testResult = {
+        userId: user?.uid,
+        startTime,
         endTime: new Date(),
         score,
-        version: "1.0",
-        alertnessRating,
-        questions: questions.map((q) => q.question),
-        answers: selectedAnswers,
         difficulty,
-        baseScore: score,
-        adjustedScore:
-          score *
-          (difficulty === "easy" ? 1 : difficulty === "medium" ? 1.5 : 2),
+        answers,
+        questions: questions.map((q) => q.id),
       };
 
       await addDoc(collection(db, "testResults"), testResult);
       router.push("/dashboard/test/history");
-    } catch (err) {
-      setError("Failed to submit test. Please try again.");
+    } catch {
+      console.error("Error submitting test");
     }
   };
 
@@ -142,7 +150,7 @@ export default function TestPage() {
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold mb-2">Test Review</h2>
         <p className="text-gray-600">
-          Score: {calculateScore(selectedAnswers)} out of {questions.length}
+          Score: {calculateScore(answers)} out of {questions.length}
         </p>
       </div>
 
@@ -153,12 +161,12 @@ export default function TestPage() {
               <h3 className="text-lg font-medium">Question {index + 1}</h3>
               <span
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedAnswers[index] === question.correctAnswer
+                  answers[index] === question.correctAnswer
                     ? "bg-green-100 text-green-800"
                     : "bg-red-100 text-red-800"
                 }`}
               >
-                {selectedAnswers[index] === question.correctAnswer
+                {answers[index] === question.correctAnswer
                   ? "Correct"
                   : "Incorrect"}
               </span>
@@ -173,7 +181,7 @@ export default function TestPage() {
                   className={`p-3 rounded ${
                     option === question.correctAnswer
                       ? "bg-green-100"
-                      : option === selectedAnswers[index]
+                      : option === answers[index]
                       ? "bg-red-100"
                       : "bg-gray-50"
                   }`}
@@ -210,7 +218,7 @@ export default function TestPage() {
           </div>
         </div>
 
-        <Button onClick={submitTest} className="w-full">
+        <Button onClick={handleSubmitTest} className="w-full">
           Submit Test
         </Button>
       </div>
@@ -268,10 +276,10 @@ export default function TestPage() {
                     showExplanation
                       ? option === currentQuestion.correctAnswer
                         ? "default"
-                        : selectedAnswers[currentQuestionIndex] === option
+                        : answers[currentQuestionIndex] === option
                         ? "destructive"
                         : "outline"
-                      : selectedAnswers[currentQuestionIndex] === option
+                      : answers[currentQuestionIndex] === option
                       ? "default"
                       : "outline"
                   }

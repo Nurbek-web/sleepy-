@@ -57,7 +57,7 @@ export default function StatsPage() {
   useEffect(() => {
     if (!user) return;
     fetchData();
-  }, [user]);
+  }, [user, timeRange, fetchData]);
 
   const fetchData = async () => {
     try {

@@ -15,8 +15,6 @@ import {
 import { db } from "@/lib/firebase";
 import { TestResult, SleepEntry, User } from "@/types";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -24,10 +22,7 @@ import {
   Legend,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
-  ScatterPlot,
+  ScatterChart,
   Scatter,
 } from "recharts";
 
