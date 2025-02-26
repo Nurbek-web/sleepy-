@@ -1,23 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
 import {
-  addDoc,
   collection,
   query,
   where,
   limit,
   getDocs,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { generateQuestion } from "@/lib/openai";
-import { TestResult } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface Question {
+  id?: string;
   question: string;
   options: string[];
   correctAnswer: string;
@@ -31,57 +30,35 @@ export default function TestPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes in seconds
   const [difficulty] = useState<"easy" | "medium" | "hard">("medium");
-  const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
   const [startTime] = useState<Date>(new Date());
   const [alertnessRating, setAlertnessRating] = useState(5);
 
-  // Add useEffect to load questions
-  useEffect(() => {
-    if (user) {
-      loadQuestions();
+  const handleNextQuestion = useCallback(() => {
+    setShowExplanation(false);
+    setTimeRemaining(QUESTION_TIME_LIMIT);
+
+    if (currentQuestionIndex === questions.length - 1) {
+      setIsReviewMode(true);
+    } else {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
-  }, [user, difficulty]);
-
-  // Timer effect
-  useEffect(() => {
-    if (loading || isReviewMode || showExplanation) return;
-
-    const timer = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          handleTimeUp();
-          return QUESTION_TIME_LIMIT;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [loading, currentQuestionIndex, isReviewMode, showExplanation]);
-
-  useEffect(() => {
-    if (timeRemaining === 0) {
-      handleTimeUp();
-    }
-  }, [timeRemaining, handleTimeUp]);
+  }, [currentQuestionIndex, questions.length]);
 
   const handleTimeUp = useCallback(() => {
     const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = ""; // No answer selected
     setAnswers(newAnswers);
     handleNextQuestion();
-  }, [currentQuestionIndex, answers]);
+  }, [currentQuestionIndex, answers, handleNextQuestion]);
 
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     try {
       const questionsQuery = query(
         collection(db, "questions"),
@@ -99,24 +76,49 @@ export default function TestPage() {
       console.error("Error loading questions");
       setLoading(false);
     }
-  };
+  }, [difficulty]);
+
+  // Add useEffect to load questions
+  useEffect(() => {
+    if (user) {
+      loadQuestions();
+    }
+  }, [user, difficulty, loadQuestions]);
+
+  // Timer effect
+  useEffect(() => {
+    if (loading || isReviewMode || showExplanation) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          handleTimeUp();
+          return QUESTION_TIME_LIMIT;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [
+    loading,
+    currentQuestionIndex,
+    isReviewMode,
+    showExplanation,
+    handleTimeUp,
+  ]);
+
+  useEffect(() => {
+    if (timeRemaining === 0) {
+      handleTimeUp();
+    }
+  }, [timeRemaining, handleTimeUp]);
 
   const handleAnswerSelect = async (answer: string) => {
     const newAnswers = [...answers];
     newAnswers[currentQuestionIndex] = answer;
     setAnswers(newAnswers);
     setShowExplanation(true);
-  };
-
-  const handleNextQuestion = () => {
-    setShowExplanation(false);
-    setTimeRemaining(QUESTION_TIME_LIMIT);
-
-    if (currentQuestionIndex === questions.length - 1) {
-      setIsReviewMode(true);
-    } else {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
   };
 
   const calculateScore = (answers: string[]) => {
@@ -127,14 +129,16 @@ export default function TestPage() {
 
   const handleSubmitTest = async () => {
     try {
+      const finalScore = calculateScore(answers);
       const testResult = {
-        userId: user?.uid,
+        userId: user?.id,
         startTime,
         endTime: new Date(),
-        score,
+        score: finalScore,
         difficulty,
         answers,
         questions: questions.map((q) => q.id),
+        alertnessRating,
       };
 
       await addDoc(collection(db, "testResults"), testResult);

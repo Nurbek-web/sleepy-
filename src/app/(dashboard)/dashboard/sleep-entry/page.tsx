@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { SleepEntry } from "@/types";
+import { format } from "date-fns";
 
 export default function SleepEntryPage() {
   const { user } = useAuth();
@@ -55,8 +56,8 @@ export default function SleepEntryPage() {
       const sleepEntry: Omit<SleepEntry, "id"> = {
         userId: user!.id,
         date: today,
-        bedTime: bedDateTime,
-        wakeTime: wakeDateTime,
+        bedTime: format(bedDateTime, "HH:mm"),
+        wakeTime: format(wakeDateTime, "HH:mm"),
         sleepDuration: Number(sleepDuration.toFixed(1)), // Store sleep duration in hours
         sleepQuality: Number(formData.sleepQuality),
         screenTime: Number(formData.screenTime),
@@ -67,7 +68,7 @@ export default function SleepEntryPage() {
 
       await addDoc(collection(db, "sleepEntries"), sleepEntry);
       router.push("/dashboard");
-    } catch (err) {
+    } catch {
       setError("Failed to save sleep entry. Please try again.");
     } finally {
       setLoading(false);
@@ -78,7 +79,7 @@ export default function SleepEntryPage() {
     <div className="max-w-2xl mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle>Today's Sleep Entry</CardTitle>
+          <CardTitle>Today&apos;s Sleep Entry</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">

@@ -99,13 +99,6 @@ export default function TestHistoryPage() {
     fetchData();
   }, [user]);
 
-  const calculateSleepDuration = (entry: SleepEntry) => {
-    const bedTime = entry.bedTime;
-    const wakeTime = entry.wakeTime;
-    // Sleep duration is now stored directly in the entry
-    return entry.sleepDuration;
-  };
-
   const chartData = testResults.map((test) => {
     const testDate =
       test.startTime instanceof Timestamp

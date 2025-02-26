@@ -14,16 +14,7 @@ import {
 } from "recharts";
 import { getSleepEntries } from "@/lib/db";
 import { useAuth } from "@/contexts/AuthContext";
-
-interface SleepEntry {
-  id: string;
-  date: Date;
-  bedTime: Date;
-  wakeTime: Date;
-  sleepDuration: number;
-  sleepQuality: number;
-  userId: string;
-}
+import { SleepEntry } from "@/types";
 
 export default function SleepDashboardPage() {
   const { user } = useAuth();

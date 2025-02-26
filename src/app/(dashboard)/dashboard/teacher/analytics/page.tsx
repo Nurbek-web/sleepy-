@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import {
   orderBy,
   getDocs,
   Timestamp,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { TestResult, SleepEntry, User } from "@/types";
@@ -26,11 +28,12 @@ import {
   Scatter,
 } from "recharts";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
-const DIFFICULTY_MULTIPLIERS = {
-  easy: 1,
-  medium: 1.5,
-  hard: 2,
+type Difficulty = "easy" | "medium" | "hard";
+type DifficultyStats = {
+  [K in Difficulty]: {
+    count: number;
+    avgScore: number;
+  };
 };
 
 export default function TeacherAnalyticsPage() {
@@ -41,12 +44,7 @@ export default function TeacherAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<"week" | "month" | "all">("week");
 
-  useEffect(() => {
-    if (!user) return;
-    fetchData();
-  }, [user, timeRange]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       // Fetch students
       const studentsQuery = query(
@@ -55,7 +53,8 @@ export default function TeacherAnalyticsPage() {
       );
       const studentsSnapshot = await getDocs(studentsQuery);
       const studentsData = studentsSnapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as User)
+        (doc: QueryDocumentSnapshot<DocumentData>) =>
+          ({ id: doc.id, ...doc.data() } as User)
       );
       setStudents(studentsData);
 
@@ -73,7 +72,8 @@ export default function TeacherAnalyticsPage() {
       );
       const testSnapshot = await getDocs(testQuery);
       const testData = testSnapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as TestResult)
+        (doc: QueryDocumentSnapshot<DocumentData>) =>
+          ({ id: doc.id, ...doc.data() } as TestResult)
       );
       setTestResults(testData);
 
@@ -85,7 +85,8 @@ export default function TeacherAnalyticsPage() {
       );
       const sleepSnapshot = await getDocs(sleepQuery);
       const sleepData = sleepSnapshot.docs.map(
-        (doc) => ({ id: doc.id, ...doc.data() } as SleepEntry)
+        (doc: QueryDocumentSnapshot<DocumentData>) =>
+          ({ id: doc.id, ...doc.data() } as SleepEntry)
       );
       setSleepData(sleepData);
 
@@ -94,7 +95,12 @@ export default function TeacherAnalyticsPage() {
       console.error("Error fetching data:", error);
       setLoading(false);
     }
-  };
+  }, [timeRange]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchData();
+  }, [user, timeRange, fetchData]);
 
   const calculateAverages = () => {
     const averages = students.map((student) => {
@@ -129,7 +135,7 @@ export default function TeacherAnalyticsPage() {
   };
 
   const getDifficultyStats = () => {
-    const stats = {
+    const stats: DifficultyStats = {
       easy: { count: 0, avgScore: 0 },
       medium: { count: 0, avgScore: 0 },
       hard: { count: 0, avgScore: 0 },
@@ -140,7 +146,7 @@ export default function TeacherAnalyticsPage() {
       stats[test.difficulty].avgScore += test.adjustedScore;
     });
 
-    Object.keys(stats).forEach((diff) => {
+    (Object.keys(stats) as Difficulty[]).forEach((diff) => {
       if (stats[diff].count > 0) {
         stats[diff].avgScore /= stats[diff].count;
       }

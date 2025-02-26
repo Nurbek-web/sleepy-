@@ -6,25 +6,10 @@ import {
   getDocs,
   orderBy,
   limit,
-  Timestamp,
   DocumentData,
   QueryDocumentSnapshot,
 } from "firebase/firestore";
-
-interface SleepEntry {
-  id: string;
-  date: Date;
-  sleepTime: Date;
-  wakeTime: Date;
-  sleepQuality: number;
-  userId: string;
-}
-
-interface TestEntry {
-  id: string;
-  completedAt: Date;
-  userId: string;
-}
+import { SleepEntry } from "@/types";
 
 export const getSleepEntries = async (
   userId: string,
@@ -46,8 +31,8 @@ export const getSleepEntries = async (
         id: doc.id,
         ...doc.data(),
         date: doc.data().date?.toDate(),
-        sleepTime: doc.data().sleepTime?.toDate(),
-        wakeTime: doc.data().wakeTime?.toDate(),
+        bedTime: doc.data().bedTime,
+        wakeTime: doc.data().wakeTime,
       })
     ) as SleepEntry[];
   } catch (error) {

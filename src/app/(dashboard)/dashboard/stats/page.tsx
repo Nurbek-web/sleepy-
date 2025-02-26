@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
@@ -54,12 +54,7 @@ export default function StatsPage() {
     alertness: 0,
   });
 
-  useEffect(() => {
-    if (!user) return;
-    fetchData();
-  }, [user, timeRange, fetchData]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -163,7 +158,12 @@ export default function StatsPage() {
       setError("Failed to load statistics");
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchData();
+  }, [user, fetchData]);
 
   if (loading) {
     return (
