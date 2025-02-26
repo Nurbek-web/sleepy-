@@ -6,7 +6,6 @@ import { useState, useEffect, useCallback } from "react";
 import {
   collection,
   query,
-  limit,
   getDocs,
   addDoc,
   where,
@@ -64,52 +63,30 @@ export default function TestPage() {
     setLoading(true);
     setError(null);
     try {
-      // Try to get existing questions first
-      const questionsQuery = query(collection(db, "questions"), limit(10));
+      console.log("Generating new questions...");
+      const generatedQuestions: Question[] = [];
 
-      console.log("Executing Firestore query...");
-      const snapshot = await getDocs(questionsQuery);
-      console.log("Query complete. Empty?", snapshot.empty);
-
-      if (snapshot.empty) {
-        console.log("No questions found, generating new ones...");
-        // Generate new questions
-        const generatedQuestions: Question[] = [];
-        for (let i = 0; i < 10; i++) {
-          try {
-            const response = await fetch("/api/generate-question", {
-              method: "POST",
-            });
-            if (!response.ok) {
-              throw new Error("Failed to generate question");
-            }
-            const questionData = await response.json();
-            // Store in Firestore
-            const docRef = await addDoc(
-              collection(db, "questions"),
-              questionData
-            );
-            generatedQuestions.push({ ...questionData, id: docRef.id });
-          } catch (error) {
-            console.error("Error generating question:", error);
+      for (let i = 0; i < 10; i++) {
+        try {
+          const response = await fetch("/api/generate-question", {
+            method: "POST",
+          });
+          if (!response.ok) {
+            throw new Error("Failed to generate question");
           }
+          const questionData = await response.json();
+          generatedQuestions.push(questionData);
+        } catch (error) {
+          console.error("Error generating question:", error);
         }
-
-        if (generatedQuestions.length === 0) {
-          throw new Error("Failed to generate questions");
-        }
-
-        console.log(`Generated ${generatedQuestions.length} new questions`);
-        setQuestions(generatedQuestions);
-      } else {
-        const loadedQuestions = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Question[];
-        console.log(`Loaded ${loadedQuestions.length} questions`);
-        setQuestions(loadedQuestions);
       }
 
+      if (generatedQuestions.length === 0) {
+        throw new Error("Failed to generate questions");
+      }
+
+      console.log(`Generated ${generatedQuestions.length} new questions`);
+      setQuestions(generatedQuestions);
       setCurrentQuestionIndex(0);
       setAnswers([]);
       setIsReviewMode(false);
@@ -187,7 +164,14 @@ export default function TestPage() {
         endTime: new Date(),
         score: finalScore,
         answers,
-        questions: questions.map((q) => q.id),
+        questions: questions.map(
+          ({ question, options, correctAnswer, explanation }) => ({
+            question,
+            options,
+            correctAnswer,
+            explanation,
+          })
+        ),
         alertnessRating,
       };
 
