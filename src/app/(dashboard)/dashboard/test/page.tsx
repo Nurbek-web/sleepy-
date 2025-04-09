@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, memo } from "react";
 import {
   collection,
   query,
@@ -15,6 +15,7 @@ import { db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { startOfDay, endOfDay } from "date-fns";
+import { Slider } from "@/components/ui/slider";
 
 interface Question {
   id?: string;
@@ -25,6 +26,112 @@ interface Question {
 }
 
 const QUESTION_TIME_LIMIT = 120; // 2 minutes per question
+
+// Define interface for the ReviewMode props
+interface ReviewModeProps {
+  questions: Question[];
+  answers: string[];
+  calculateScore: (answers: string[]) => number;
+  alertnessRating: number;
+  setAlertnessRating: (value: number) => void;
+  handleSubmitTest: () => Promise<void>;
+}
+
+// Update the ReviewMode component with proper types
+const ReviewMode = memo(({
+  questions,
+  answers,
+  calculateScore,
+  alertnessRating, 
+  setAlertnessRating, 
+  handleSubmitTest
+}: ReviewModeProps) => {
+  return (
+    <div className="space-y-8">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold mb-2">Test Review</h2>
+        <p className="text-gray-600">
+          Score: {calculateScore(answers)} out of {questions.length}
+        </p>
+      </div>
+
+      {questions.map((question: Question, index: number) => (
+        <Card key={index} className="p-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Question {index + 1}</h3>
+              <span
+                className={`px-3 py-1 rounded-full text-sm ${
+                  answers[index] === question.correctAnswer
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
+                {answers[index] === question.correctAnswer
+                  ? "Correct"
+                  : "Incorrect"}
+              </span>
+            </div>
+
+            <p>{question.question}</p>
+
+            <div className="space-y-2">
+              {question.options.map((option: string, optIndex: number) => (
+                <div
+                  key={optIndex}
+                  className={`p-3 rounded ${
+                    option === question.correctAnswer
+                      ? "bg-green-100"
+                      : option === answers[index]
+                      ? "bg-red-100"
+                      : "bg-gray-50"
+                  }`}
+                >
+                  {option}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 p-4 bg-gray-50 rounded-md">
+              <h4 className="font-semibold mb-2">Explanation</h4>
+              <p className="text-gray-700">{question.explanation}</p>
+            </div>
+          </div>
+        </Card>
+      ))}
+
+      <div className="mt-8 space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">How alert do you feel right now?</h3>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">Very tired</span>
+            <span className="text-sm text-gray-500">Very alert</span>
+          </div>
+          <Slider
+            value={[alertnessRating]}
+            max={10}
+            step={1}
+            onValueChange={(value: number[]) => setAlertnessRating(value[0])}
+            className="w-full"
+          />
+          <div className="text-center">
+            <p className="text-lg font-medium">{alertnessRating}/10</p>
+          </div>
+        </div>
+
+        <Button 
+          className="w-full" 
+          size="lg" 
+          onClick={handleSubmitTest}
+        >
+          Submit Test
+        </Button>
+      </div>
+    </div>
+  );
+});
+
+ReviewMode.displayName = "ReviewMode";
 
 export default function TestPage() {
   const { user } = useAuth();
@@ -40,6 +147,7 @@ export default function TestPage() {
   const [startTime] = useState<Date>(new Date());
   const [alertnessRating, setAlertnessRating] = useState(5);
 
+  // Move all hooks before any conditional returns
   const handleNextQuestion = useCallback(() => {
     setShowExplanation(false);
     setTimeRemaining(QUESTION_TIME_LIMIT);
@@ -102,6 +210,12 @@ export default function TestPage() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (user?.role === "teacher") {
+      router.push("/dashboard/teacher");
+    }
+  }, [user?.role, router]);
 
   // Load questions when component mounts
   useEffect(() => {
@@ -209,86 +323,9 @@ export default function TestPage() {
     }
   };
 
-  // Review mode component
-  const ReviewMode = () => (
-    <div className="space-y-8">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold mb-2">Test Review</h2>
-        <p className="text-gray-600">
-          Score: {calculateScore(answers)} out of {questions.length}
-        </p>
-      </div>
-
-      {questions.map((question, index) => (
-        <Card key={index} className="p-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Question {index + 1}</h3>
-              <span
-                className={`px-3 py-1 rounded-full text-sm ${
-                  answers[index] === question.correctAnswer
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {answers[index] === question.correctAnswer
-                  ? "Correct"
-                  : "Incorrect"}
-              </span>
-            </div>
-
-            <p>{question.question}</p>
-
-            <div className="space-y-2">
-              {question.options.map((option, optIndex) => (
-                <div
-                  key={optIndex}
-                  className={`p-3 rounded ${
-                    option === question.correctAnswer
-                      ? "bg-green-100"
-                      : option === answers[index]
-                      ? "bg-red-100"
-                      : "bg-gray-50"
-                  }`}
-                >
-                  {option}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 p-4 bg-gray-50 rounded-md">
-              <h4 className="font-semibold mb-2">Explanation</h4>
-              <p className="text-gray-700">{question.explanation}</p>
-            </div>
-          </div>
-        </Card>
-      ))}
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            How alert do you feel? (1-5)
-          </label>
-          <input
-            type="range"
-            min="1"
-            max="5"
-            value={alertnessRating}
-            onChange={(e) => setAlertnessRating(Number(e.target.value))}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>Very Tired</span>
-            <span>Very Alert</span>
-          </div>
-        </div>
-
-        <Button onClick={handleSubmitTest} className="w-full">
-          Submit Test
-        </Button>
-      </div>
-    </div>
-  );
+  if (user?.role === "teacher") {
+    return null;
+  }
 
   if (loading) {
     return (
@@ -317,6 +354,7 @@ export default function TestPage() {
   }
 
   const currentQuestion = questions[currentQuestionIndex];
+  
   if (!currentQuestion) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -336,7 +374,14 @@ export default function TestPage() {
   if (isReviewMode) {
     return (
       <div className="max-w-3xl mx-auto py-8">
-        <ReviewMode />
+        <ReviewMode 
+          questions={questions}
+          answers={answers}
+          calculateScore={calculateScore}
+          alertnessRating={alertnessRating}
+          setAlertnessRating={setAlertnessRating}
+          handleSubmitTest={handleSubmitTest}
+        />
       </div>
     );
   }

@@ -4,13 +4,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useEffect } from "react";
 
 export default function TeacherDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (user?.role === "student") {
+      router.push("/dashboard");
+    }
+  }, [user?.role, router]);
+
   if (user?.role === "student") {
-    router.push("/dashboard");
     return null;
   }
 

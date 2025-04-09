@@ -27,6 +27,7 @@ import {
   ScatterChart,
   Scatter,
 } from "recharts";
+import { useRouter } from "next/navigation";
 
 type Difficulty = "easy" | "medium" | "hard";
 type DifficultyStats = {
@@ -38,6 +39,7 @@ type DifficultyStats = {
 
 export default function TeacherAnalyticsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [sleepData, setSleepData] = useState<SleepEntry[]>([]);
   const [students, setStudents] = useState<User[]>([]);
@@ -98,7 +100,13 @@ export default function TeacherAnalyticsPage() {
   }, [timeRange]);
 
   useEffect(() => {
-    if (!user) return;
+    if (user && user.role !== "teacher") {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!user || user.role !== "teacher") return;
     fetchData();
   }, [user, timeRange, fetchData]);
 

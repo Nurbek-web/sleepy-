@@ -40,8 +40,13 @@ export default function DashboardPage() {
     checkTodayEntries();
   }, [user?.id]);
 
+  useEffect(() => {
+    if (user?.role === "teacher") {
+      router.push("/dashboard/teacher");
+    }
+  }, [user?.role, router]);
+
   if (user?.role === "teacher") {
-    router.push("/dashboard/teacher");
     return null;
   }
 
