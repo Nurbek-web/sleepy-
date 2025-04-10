@@ -23,7 +23,7 @@ interface Question {
   options: string[];
   correctAnswer: string;
   explanation: string;
-}
+} 
 
 const QUESTION_TIME_LIMIT = 120; // 2 minutes per question
 

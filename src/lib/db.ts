@@ -10,6 +10,7 @@ import {
   QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { SleepEntry } from "@/types";
+import { executeQueryWithFallback } from "./firebase-utils";
 
 export const getSleepEntries = async (
   userId: string,
@@ -47,27 +48,48 @@ export const getTodayEntries = async (
   endOfToday: Date
 ): Promise<{ hasSleepEntry: boolean; hasTestEntry: boolean }> => {
   try {
-    // For sleep entries, just get today's entries by userId
-    const sleepRef = collection(db, "sleepEntries");
-    const sleepQuery = query(sleepRef, where("userId", "==", userId));
-    const sleepSnapshot = await getDocs(sleepQuery);
-    const hasSleepEntry = sleepSnapshot.docs.some(
-      (doc: QueryDocumentSnapshot<DocumentData>) => {
-        const date = doc.data().date?.toDate();
-        return date >= startOfToday && date <= endOfToday;
-      }
-    );
+    let hasSleepEntry = false;
+    let hasTestEntry = false;
 
-    // For test entries, just get today's entries by userId
-    const testRef = collection(db, "testResults");
-    const testQuery = query(testRef, where("userId", "==", userId));
-    const testSnapshot = await getDocs(testQuery);
-    const hasTestEntry = testSnapshot.docs.some(
-      (doc: QueryDocumentSnapshot<DocumentData>) => {
-        const completedAt = doc.data().startTime?.toDate();
-        return completedAt >= startOfToday && completedAt <= endOfToday;
-      }
-    );
+    try {
+      // For sleep entries, use executeQueryWithFallback to handle index issues
+      const sleepSnapshot = await executeQueryWithFallback({
+        collectionName: "sleepEntries",
+        whereField: "userId",
+        whereOperator: "==",
+        whereValue: userId
+      });
+
+      hasSleepEntry = sleepSnapshot.docs.some(
+        (doc: QueryDocumentSnapshot<DocumentData>) => {
+          const date = doc.data().date?.toDate();
+          return date >= startOfToday && date <= endOfToday;
+        }
+      );
+    } catch (sleepError) {
+      console.error("Error checking sleep entries:", sleepError);
+      // Continue execution even if sleep entries check fails
+    }
+
+    try {
+      // For test entries, use executeQueryWithFallback to handle index issues
+      const testSnapshot = await executeQueryWithFallback({
+        collectionName: "testResults",
+        whereField: "userId",
+        whereOperator: "==",
+        whereValue: userId
+      });
+
+      hasTestEntry = testSnapshot.docs.some(
+        (doc: QueryDocumentSnapshot<DocumentData>) => {
+          const completedAt = doc.data().startTime?.toDate();
+          return completedAt >= startOfToday && completedAt <= endOfToday;
+        }
+      );
+    } catch (testError) {
+      console.error("Error checking test entries:", testError);
+      // Continue execution even if test entries check fails
+    }
 
     return {
       hasSleepEntry,
