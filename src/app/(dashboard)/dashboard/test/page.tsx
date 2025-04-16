@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { startOfDay, endOfDay } from "date-fns";
 import { Slider } from "@/components/ui/slider";
+import { getFormattedQuestions } from "@/lib/staticQuestions";
 
 interface Question {
   id?: string;
@@ -171,30 +172,22 @@ export default function TestPage() {
     setLoading(true);
     setError(null);
     try {
-      console.log("Generating new questions...");
-      const generatedQuestions: Question[] = [];
-
-      for (let i = 0; i < 10; i++) {
-        try {
-          const response = await fetch("/api/generate-question", {
-            method: "POST",
-          });
-          if (!response.ok) {
-            throw new Error("Failed to generate question");
-          }
-          const questionData = await response.json();
-          generatedQuestions.push(questionData);
-        } catch (error) {
-          console.error("Error generating question:", error);
+      console.log("Loading static questions...");
+      const staticQuestions = getFormattedQuestions();
+      
+      // Randomly select 10 questions from the pool
+      const selectedQuestions = [];
+      const indices = new Set();
+      while (selectedQuestions.length < 10 && indices.size < staticQuestions.length) {
+        const randomIndex = Math.floor(Math.random() * staticQuestions.length);
+        if (!indices.has(randomIndex)) {
+          indices.add(randomIndex);
+          selectedQuestions.push(staticQuestions[randomIndex]);
         }
       }
 
-      if (generatedQuestions.length === 0) {
-        throw new Error("Failed to generate questions");
-      }
-
-      console.log(`Generated ${generatedQuestions.length} new questions`);
-      setQuestions(generatedQuestions);
+      console.log(`Selected ${selectedQuestions.length} questions from the static pool`);
+      setQuestions(selectedQuestions);
       setCurrentQuestionIndex(0);
       setAnswers([]);
       setIsReviewMode(false);

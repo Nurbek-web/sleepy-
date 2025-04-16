@@ -1,0 +1,218 @@
+[
+  {
+    "name": "Aidar Zhumadilov",
+    "gender": "male",
+    "grade": "9",
+    "email": "student1@sleepystudy.kz",
+    "id": "user_jqf0keh5qse",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.955Z"
+  },
+  {
+    "name": "Nursultan Akhmetov",
+    "gender": "male",
+    "grade": "10",
+    "email": "student2@sleepystudy.kz",
+    "id": "user_2j7vgz9j64e",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Yerbol Satbayev",
+    "gender": "male",
+    "grade": "11",
+    "email": "student3@sleepystudy.kz",
+    "id": "user_s8iyjxe9t1j",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Dias Tulegenov",
+    "gender": "male",
+    "grade": "9",
+    "email": "student4@sleepystudy.kz",
+    "id": "user_0dtwsaq7r8t",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Arman Utemuratov",
+    "gender": "male",
+    "grade": "10",
+    "email": "student5@sleepystudy.kz",
+    "id": "user_eh9ha358ppi",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Nurlan Kozhabekov",
+    "gender": "male",
+    "grade": "11",
+    "email": "student6@sleepystudy.kz",
+    "id": "user_vqqsvx8lz5r",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Daniyar Bekturov",
+    "gender": "male",
+    "grade": "12",
+    "email": "student7@sleepystudy.kz",
+    "id": "user_n5no0bbzjcg",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Timur Auezov",
+    "gender": "male",
+    "grade": "9",
+    "email": "student8@sleepystudy.kz",
+    "id": "user_pw4xj1h5uu",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Azamat Sultanbekov",
+    "gender": "male",
+    "grade": "10",
+    "email": "student9@sleepystudy.kz",
+    "id": "user_u1wk7h6uxy",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Samat Temirgaliyev",
+    "gender": "male",
+    "grade": "11",
+    "email": "student10@sleepystudy.kz",
+    "id": "user_rf44fhrrpv",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Yerlan Nurpeisov",
+    "gender": "male",
+    "grade": "12",
+    "email": "student11@sleepystudy.kz",
+    "id": "user_ktbum9cg1p",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Bolat Nurmukhanov",
+    "gender": "male",
+    "grade": "10",
+    "email": "student12@sleepystudy.kz",
+    "id": "user_4whyhfdqlff",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Aizhan Mukhamejanova",
+    "gender": "female",
+    "grade": "9",
+    "email": "student13@sleepystudy.kz",
+    "id": "user_qlysw9tw1n",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Madina Esenova",
+    "gender": "female",
+    "grade": "10",
+    "email": "student14@sleepystudy.kz",
+    "id": "user_8tixnuzvmbp",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Aliya Nurpeisova",
+    "gender": "female",
+    "grade": "11",
+    "email": "student15@sleepystudy.kz",
+    "id": "user_7q5fbm12mvi",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Dinara Smagulova",
+    "gender": "female",
+    "grade": "12",
+    "email": "student16@sleepystudy.kz",
+    "id": "user_2y6v1lcwl2v",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Assel Bektursynova",
+    "gender": "female",
+    "grade": "9",
+    "email": "student17@sleepystudy.kz",
+    "id": "user_td9htlk44db",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Gulmira Nurbekova",
+    "gender": "female",
+    "grade": "10",
+    "email": "student18@sleepystudy.kz",
+    "id": "user_qnv0yab0fwl",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Ainur Dauletova",
+    "gender": "female",
+    "grade": "11",
+    "email": "student19@sleepystudy.kz",
+    "id": "user_8ytn57fy1q",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Zarina Kaliyeva",
+    "gender": "female",
+    "grade": "12",
+    "email": "student20@sleepystudy.kz",
+    "id": "user_yn5kai90ai",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Saule Zhanseitova",
+    "gender": "female",
+    "grade": "9",
+    "email": "student21@sleepystudy.kz",
+    "id": "user_shlcqoddlm9",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Aigerim Baitasova",
+    "gender": "female",
+    "grade": "10",
+    "email": "student22@sleepystudy.kz",
+    "id": "user_3piwt34kkjt",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Gulnaz Orazova",
+    "gender": "female",
+    "grade": "11",
+    "email": "student23@sleepystudy.kz",
+    "id": "user_pfy9r1kgyaa",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  },
+  {
+    "name": "Akmaral Tulegenova",
+    "gender": "female",
+    "grade": "12",
+    "email": "student24@sleepystudy.kz",
+    "id": "user_rjmeyv5yj2l",
+    "role": "student",
+    "createdAt": "2025-04-15T03:17:02.956Z"
+  }
+]

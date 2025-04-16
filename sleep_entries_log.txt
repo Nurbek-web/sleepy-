@@ -1,0 +1,18 @@
+Initializing Firebase with config: {
+  apiKey: 'AIzaSyDwY9o-4rTAZF3nPlPdKanHKXn2CcPnooA',
+  authDomain: 'olympiad-4ec53.firebaseapp.com',
+  projectId: 'olympiad-4ec53',
+  storageBucket: 'olympiad-4ec53.appspot.com',
+  messagingSenderId: '605415709669',
+  appId: '1:605415709669:web:30b515a8afe8a404042d0c'
+}
+Starting sleep entry generation from 3/27/2023 to 4/15/2023
+Generating sleep entries from 3/27/2023 to 4/15/2023
+Generating entries for 3/27/2023
+⚠️ Could not find user ID for Aidar Zhumadilov (student1@sleepystudy.kz), skipping
+⚠️ Could not find user ID for Nursultan Akhmetov (student2@sleepystudy.kz), skipping
+⚠️ Could not find user ID for Yerbol Satbayev (student3@sleepystudy.kz), skipping
+⚠️ Could not find user ID for Dias Tulegenov (student4@sleepystudy.kz), skipping
+⚠️ Could not find user ID for Arman Utemuratov (student5@sleepystudy.kz), skipping
+⚠️ Could not find user ID for Nurlan Kozhabekov (student6@sleepystudy.kz), skipping
+⚠️ Could not find user ID for Daniyar Bekturov (student7@sleepystudy.kz), skipping

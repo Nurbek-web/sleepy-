@@ -99,4 +99,38 @@ export function parseFirestoreDates(doc: any, dateFields: string[]): any {
   });
   
   return result;
+}
+
+/**
+ * Safely converts a value that might be a Firestore Timestamp to a JavaScript Date
+ * Handles multiple timestamp formats and falls back to direct conversion if not a timestamp
+ * 
+ * @param value Value to convert (could be Timestamp, Date, string, or undefined)
+ * @returns A JavaScript Date object, or undefined if the value can't be converted
+ */
+export function safeTimestampToDate(value: any): Date | undefined {
+  try {
+    if (!value) return undefined;
+    
+    // Case 1: Firestore Timestamp with toDate method
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+      return value.toDate();
+    }
+    
+    // Case 2: Firestore Timestamp-like object with seconds and nanoseconds
+    if (typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
+      return new Date(value.seconds * 1000);
+    }
+    
+    // Case 3: Already a Date object
+    if (value instanceof Date) {
+      return value;
+    }
+    
+    // Case 4: String or number timestamp
+    return new Date(value);
+  } catch (error) {
+    console.error("Error converting timestamp to date:", error, value);
+    return undefined;
+  }
 } 

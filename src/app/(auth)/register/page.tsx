@@ -30,33 +30,50 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(""); // Clear previous errors
     
     // Basic validation
     if (password.length < 6) {
       setError("Password must be at least 6 characters long");
       return;
     }
+    if (!name) {
+      setError("Please enter your full name");
+      return;
+    }
+    if (!email) {
+      setError("Please enter a valid email address");
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      await signUp(email, password, role, name);
-      router.push("/dashboard");
+      await signUp(email, password, role, name); // Assuming grade is optional and not collected here
+      // Wait for the auth state listener to potentially set the user
+      // or handle cases where email confirmation is needed.
+      // Redirecting immediately might be too soon if email confirmation is enabled.
+      // Consider showing a "Check your email" message instead.
+      // For now, we'll keep the redirect, but be aware of this.
+      router.push("/dashboard"); 
     } catch (err: any) {
-      // Extract meaningful error message
-      const errorCode = err?.code || "";
-      let errorMessage = "Failed to create account. Please try again.";
+      // Extract meaningful error message from Supabase error
+      let errorMessage = err?.message || "Failed to create account. Please try again.";
       
-      if (errorCode.includes("email-already-in-use")) {
+      // Customize based on common Supabase auth errors
+      if (errorMessage.toLowerCase().includes("user already registered")) {
         errorMessage = "Email is already in use. Please use a different email or sign in.";
-      } else if (errorCode.includes("weak-password")) {
-        errorMessage = "Password is too weak. Please use a stronger password.";
-      } else if (errorCode.includes("invalid-email")) {
+      } else if (errorMessage.toLowerCase().includes("password should be at least 6 characters")) {
+        errorMessage = "Password must be at least 6 characters long.";
+      } else if (errorMessage.toLowerCase().includes("unable to validate email address")) {
         errorMessage = "Please enter a valid email address.";
-      } else if (errorCode.includes("network-request-failed")) {
+      } else if (errorMessage.toLowerCase().includes("rate limit exceeded")) {
+        errorMessage = "Too many attempts. Please try again later.";
+      } else if (errorMessage.toLowerCase().includes("failed to fetch")) { // General network error
         errorMessage = "Network error. Please check your connection.";
       }
       
+      console.error("Supabase sign up error:", err);
       setError(errorMessage);
     } finally {
       setIsLoading(false);

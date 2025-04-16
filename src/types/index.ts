@@ -33,7 +33,7 @@ export interface TestResult {
   alertnessRating: number; // 1-5
   questions: string[];
   answers: string[];
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: "easy" | "medium" | "hard" | undefined;
   baseScore: number; // Raw score before difficulty multiplier
   adjustedScore: number; // Score after difficulty multiplier
 }

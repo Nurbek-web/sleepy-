@@ -43,19 +43,21 @@ export default function LoginPage() {
     
     try {
       await signIn(email, password);
+      // Redirect is handled by useEffect based on user state change
     } catch (err: any) {
-      // Extract meaningful error message
-      const errorCode = err?.code || "";
-      let errorMessage = "Failed to sign in. Please check your credentials.";
+      // Extract meaningful error message from Supabase error
+      let errorMessage = err?.message || "Failed to sign in. Please check your credentials.";
       
-      if (errorCode.includes("user-not-found") || errorCode.includes("invalid-credential")) {
+      // Customize based on common Supabase auth errors if needed
+      if (errorMessage.toLowerCase().includes("invalid login credentials")) {
         errorMessage = "Invalid email or password. Please try again.";
-      } else if (errorCode.includes("too-many-requests")) {
+      } else if (errorMessage.toLowerCase().includes("rate limit exceeded")) {
         errorMessage = "Too many unsuccessful attempts. Please try again later.";
-      } else if (errorCode.includes("network-request-failed")) {
+      } else if (errorMessage.toLowerCase().includes("failed to fetch")) { // General network error
         errorMessage = "Network error. Please check your connection.";
       }
       
+      console.error("Supabase sign in error:", err);
       setError(errorMessage);
     } finally {
       setIsLoading(false);

@@ -20,6 +20,7 @@ import { db } from "@/lib/firebase";
 import { ArrowLeft, Search, FileText, UserRound, Calendar, ArrowRight } from "lucide-react";
 import { User, SleepEntry, TestResult } from "@/types";
 import { executeQueryWithFallback, parseFirestoreDates } from '@/lib/firebase-utils';
+import { getSleepEntries, getTestResults, getAllStudents } from "@/lib/db";
 
 export default function StudentReportsPage() {
   const { user } = useAuth();
@@ -46,23 +47,7 @@ export default function StudentReportsPage() {
     const fetchStudents = async () => {
       setLoading(true);
       try {
-        const querySnapshot = await executeQueryWithFallback({
-          collectionName: "users",
-          whereField: "role",
-          whereValue: "student"
-        });
-        
-        let studentsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate() || new Date(),
-        } as User));
-        
-        // Manual sorting if the ordering index was missing
-        studentsData = studentsData.sort((a, b) => 
-          (a.name || '').localeCompare(b.name || '')
-        );
-        
+        const studentsData = await getAllStudents();
         setStudents(studentsData);
       } catch (error) {
         console.error("Error fetching students:", error);
@@ -80,95 +65,11 @@ export default function StudentReportsPage() {
     setLoading(true);
 
     try {
-      // Fetch sleep entries with fallback
-      let sleepEntries: SleepEntry[] = [];
-      try {
-        // Primary query with ordering (requires index)
-        const sleepQuery = query(
-          collection(db, "sleepEntries"),
-          where("userId", "==", student.id),
-          orderBy("date", "desc"),
-          limit(10)
-        );
-        const sleepSnapshot = await getDocs(sleepQuery);
-        
-        sleepSnapshot.forEach((doc) => {
-          sleepEntries.push({
-            id: doc.id,
-            ...doc.data(),
-            date: doc.data().date?.toDate() || new Date(),
-            createdAt: doc.data().createdAt?.toDate() || new Date(),
-          } as SleepEntry);
-        });
-      } catch (indexError) {
-        console.warn("Sleep entries index error, using fallback:", indexError);
-        
-        // Fallback query without ordering
-        const basicSleepQuery = query(
-          collection(db, "sleepEntries"),
-          where("userId", "==", student.id)
-        );
-        const sleepSnapshot = await getDocs(basicSleepQuery);
-        
-        sleepSnapshot.forEach((doc) => {
-          sleepEntries.push({
-            id: doc.id,
-            ...doc.data(),
-            date: doc.data().date?.toDate() || new Date(),
-            createdAt: doc.data().createdAt?.toDate() || new Date(),
-          } as SleepEntry);
-        });
-        
-        // Sort manually in JavaScript 
-        sleepEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        // Limit to 10 entries
-        sleepEntries = sleepEntries.slice(0, 10);
-      }
-
-      // Fetch test results with fallback
-      let testResults: TestResult[] = [];
-      try {
-        // Primary query with ordering (requires index)
-        const testQuery = query(
-          collection(db, "testResults"),
-          where("userId", "==", student.id),
-          orderBy("startTime", "desc"),
-          limit(10)
-        );
-        const testSnapshot = await getDocs(testQuery);
-        
-        testSnapshot.forEach((doc) => {
-          testResults.push({
-            id: doc.id,
-            ...doc.data(),
-            startTime: doc.data().startTime?.toDate() || new Date(),
-            endTime: doc.data().endTime?.toDate() || new Date(),
-          } as TestResult);
-        });
-      } catch (indexError) {
-        console.warn("Test results index error, using fallback:", indexError);
-        
-        // Fallback query without ordering
-        const basicTestQuery = query(
-          collection(db, "testResults"),
-          where("userId", "==", student.id)
-        );
-        const testSnapshot = await getDocs(basicTestQuery);
-        
-        testSnapshot.forEach((doc) => {
-          testResults.push({
-            id: doc.id,
-            ...doc.data(),
-            startTime: doc.data().startTime?.toDate() || new Date(),
-            endTime: doc.data().endTime?.toDate() || new Date(),
-          } as TestResult);
-        });
-        
-        // Sort manually in JavaScript
-        testResults.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-        // Limit to 10 entries
-        testResults = testResults.slice(0, 10);
-      }
+      // Fetch sleep entries using our utility function
+      const sleepEntries = await getSleepEntries(student.id, 10);
+      
+      // Fetch test results using our utility function
+      const testResults = await getTestResults(student.id, 10);
 
       setStudentData({
         sleepEntries,
@@ -187,27 +88,57 @@ export default function StudentReportsPage() {
     student.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const renderSleepQuality = (quality: number) => {
+  const renderSleepQuality = (quality: number, id: string = 'default') => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
         <span 
-          key={i} 
+          key={`star-${id}-${i}`} 
           className={`text-lg ${i <= quality ? 'text-yellow-400' : 'text-gray-300'}`}
         >
           ★
         </span>
       );
     }
-    return stars;
+    return <>{stars}</>;
   };
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const formatDate = (date: Date | string) => {
+    try {
+      return new Date(ensureDate(date)).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "Invalid Date";
+    }
+  };
+
+  const ensureDate = (dateInput: string | Date): Date => {
+    if (dateInput instanceof Date) return dateInput;
+    if (typeof dateInput === 'string') return new Date(dateInput);
+    return new Date(); // Fallback
+  };
+
+  const formatTimeValue = (timeValue: any): string => {
+    if (!timeValue) return "N/A";
+    
+    // If it's a Date object, format it as a time string
+    if (timeValue instanceof Date) {
+      return timeValue.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+    
+    // If it's already a string, return it
+    if (typeof timeValue === 'string') return timeValue;
+    
+    // Otherwise, convert to string
+    return String(timeValue);
   };
 
   if (loading) {
@@ -259,8 +190,8 @@ export default function StudentReportsPage() {
                 <p className="text-gray-500">No students found</p>
               </div>
             ) : (
-              filteredStudents.map((student) => (
-                <Card key={student.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              filteredStudents.map((student, index) => (
+                <Card key={student.id || `student-${index}`} className="overflow-hidden hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -306,8 +237,8 @@ export default function StudentReportsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {studentData?.sleepEntries.map((entry) => (
-                      <div key={entry.id} className="p-4 bg-gray-50 rounded-lg">
+                    {studentData?.sleepEntries.map((entry, index) => (
+                      <div key={entry.id || `sleep-entry-${index}`} className="p-4 bg-gray-50 rounded-lg">
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="flex items-center gap-2">
@@ -320,17 +251,17 @@ export default function StudentReportsPage() {
                             </div>
                             <div className="mt-1">
                               <span className="text-sm text-gray-600">Quality:</span>{" "}
-                              <span className="ml-2">{renderSleepQuality(entry.sleepQuality)}</span>
+                              <span className="ml-2">{renderSleepQuality(entry.sleepQuality, `sleep-${entry.id || index}`)}</span>
                             </div>
                             <div className="mt-2 text-sm">
                               <div className="flex gap-4">
                                 <div>
                                   <span className="text-gray-500">Bed Time:</span>{" "}
-                                  <span>{entry.bedTime}</span>
+                                  <span>{formatTimeValue(entry.bedTime)}</span>
                                 </div>
                                 <div>
                                   <span className="text-gray-500">Wake Time:</span>{" "}
-                                  <span>{entry.wakeTime}</span>
+                                  <span>{formatTimeValue(entry.wakeTime)}</span>
                                 </div>
                               </div>
                             </div>
@@ -359,8 +290,8 @@ export default function StudentReportsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {studentData?.testResults.map((result) => (
-                      <div key={result.id} className="p-4 bg-gray-50 rounded-lg">
+                    {studentData?.testResults.map((result, index) => (
+                      <div key={result.id || `test-result-${index}`} className="p-4 bg-gray-50 rounded-lg">
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="flex items-center gap-2">
@@ -376,12 +307,21 @@ export default function StudentReportsPage() {
                             </div>
                             <div className="mt-1">
                               <span className="text-sm text-gray-600">Alertness:</span>{" "}
-                              <span className="ml-2">{renderSleepQuality(result.alertnessRating)}</span>
+                              <span className="ml-2">{renderSleepQuality(result.alertnessRating, `test-${result.id || index}`)}</span>
                             </div>
                             <div className="mt-2 text-sm">
                               <span className="text-gray-500">Duration:</span>{" "}
                               <span>
-                                {Math.round((result.endTime.getTime() - result.startTime.getTime()) / 60000)} min
+                                {(() => {
+                                  try {
+                                    const startTime = ensureDate(result.startTime);
+                                    const endTime = ensureDate(result.endTime);
+                                    return Math.round((endTime.getTime() - startTime.getTime()) / 60000);
+                                  } catch (error) {
+                                    console.error("Error calculating duration:", error);
+                                    return "N/A";
+                                  }
+                                })()} min
                               </span>
                             </div>
                           </div>

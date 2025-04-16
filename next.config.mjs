@@ -2,7 +2,6 @@
 const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  swcMinify: true,
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
@@ -14,7 +13,6 @@ const nextConfig = {
   },
   experimental: {
     optimizeCss: true,
-    turbo: { rules: { loaders: [{ loader: 'tsx', as: 'tsx' }] } },
   },
 };
 
